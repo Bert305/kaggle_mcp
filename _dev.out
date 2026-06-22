@@ -1,0 +1,9 @@
+Starting MCP inspector...
+⚙️ Proxy server listening on 127.0.0.1:6277
+🔑 Session token: 1d165a03028bf6860d7ef84a6afec927c7bc88eb8d5a8d34722cc88e211523a6
+Use this token to authenticate requests or set DANGEROUSLY_OMIT_AUTH=true to disable auth
+
+🔗 Open inspector with token pre-filled:
+   http://localhost:6274/?MCP_PROXY_AUTH_TOKEN=1d165a03028bf6860d7ef84a6afec927c7bc88eb8d5a8d34722cc88e211523a6
+
+🔍 MCP Inspector is up and running at http://127.0.0.1:6274 🚀

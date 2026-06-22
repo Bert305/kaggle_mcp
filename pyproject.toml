@@ -1,0 +1,15 @@
+[project]
+name = "kaggle-mcp"
+version = "0.1.0"
+description = "MCP server for EDA and ML workflows on Kaggle datasets"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "joblib>=1.5.3",
+    "kagglehub>=1.0.2",
+    "matplotlib>=3.11.0",
+    "mcp[cli]>=1.28.0",
+    "numpy>=2.5.0",
+    "pandas>=3.0.3",
+    "scikit-learn>=1.9.0",
+]
