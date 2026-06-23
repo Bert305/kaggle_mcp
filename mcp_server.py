@@ -33,6 +33,7 @@ Resources (read-only context the client can attach):
 
 Prompts (reusable, parameterized instructions):
   * eda_walkthrough          — guided EDA plan for a dataset
+  * insight_report           — open-ended insight discovery + visualizations
   * ml_pipeline              — end-to-end modelling plan for a target column
 """
 
@@ -668,6 +669,35 @@ def eda_walkthrough(filename: str = "train.csv") -> str:
         "5. Suggest `plot_distribution` calls for the most interesting columns.\n\n"
         "Finish with a concise bulleted summary of data-quality issues and "
         "three concrete hypotheses worth modelling."
+    )
+
+
+@mcp.prompt()
+def insight_report(filename: str = "train.csv") -> str:
+    """Open-ended insight discovery for a spreadsheet, with visualizations."""
+    return (
+        f"You are a senior data analyst. Explore the dataset '{filename}' and "
+        "surface the most interesting, non-obvious insights it contains — you "
+        "decide what's worth digging into.\n\n"
+        "Investigate freely using the available MCP tools:\n"
+        f"1. Start with `profile_dataset` on '{filename}' to learn its shape, "
+        "columns, dtypes, and value ranges.\n"
+        "2. Use `detect_missing_values` to spot data-quality issues that could "
+        "skew conclusions.\n"
+        "3. Use `correlation_analysis` to find the strongest numeric "
+        "relationships, then form hypotheses about WHY they hold.\n"
+        "4. Use `value_counts` on categorical columns to find imbalances, "
+        "dominant categories, or surprising distributions.\n"
+        "5. For every insight worth showing, call `plot_distribution` to save a "
+        "chart to outputs/ and reference the saved PNG path in your write-up. "
+        "Prioritize the columns that best illustrate each finding.\n\n"
+        "Then write a findings report:\n"
+        "  * 5-8 concrete insights, each stated as a clear claim backed by the "
+        "numbers you observed and the chart that shows it.\n"
+        "  * Call out anything anomalous, counter-intuitive, or that warrants "
+        "follow-up.\n"
+        "  * Finish with the single most important takeaway and a suggested "
+        "next analysis."
     )
 
 
