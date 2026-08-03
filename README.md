@@ -17,8 +17,6 @@ data visualization, feature engineering, and model evaluation.
 | `list_datasets` | List CSV files available under `datasets/` |
 | `profile_dataset` | Shape, dtypes, summary stats, sample rows |
 | `detect_missing_values` | Per-column missing counts & percentages |
-| `correlation_analysis` | Correlation matrix + strongest pairs |
-| `value_counts` | Distribution of a categorical / target column |
 | `plot_distribution` | Save a histogram / bar chart PNG to `outputs/` |
 | `train_model` | Train & evaluate a scikit-learn model, save it to `models/` |
 | `list_models` | List saved models with their target column and task type |
@@ -40,7 +38,18 @@ kaggle_mcp/
 ├── smoke_test.py        # calls every tool in-process (logic check)
 ├── client_test.py       # full MCP client <-> server round-trip (protocol check)
 ├── main.py              # convenience launcher (same as `uv run mcp_server.py`)
-├── datasets/
+├── run_web.ps1          # starts the web app (API + UI) in one command
+├── .env.example         # copy to .env and add your Claude key
+├── backend/             # FastAPI app — HTTP for the browser, MCP for the server
+│   ├── mcp_bridge.py    #   long-lived MCP stdio session
+│   ├── agent.py         #   Claude agent loop + Python/SQL codegen
+│   └── main.py          #   the HTTP routes
+├── frontend/            # React + Vite + Recharts UI
+│   └── src/
+│       ├── charts.tsx   #   chart forms (sequential bars, diverging heatmap)
+│       ├── api.ts       #   typed client, incl. SSE reader
+│       └── panels/      #   Overview · Explore · Model · Ask · Generate code
+├── datasets/            # CSVs — the web app uploads here; every tool reads here
 │   └── train.csv        # Titanic dataset (891 rows)
 ├── models/              # saved trained models (.joblib)
 ├── outputs/             # generated plots (.png)
@@ -63,6 +72,9 @@ uv sync          # installs dependencies into .venv
 >   for learning and debugging the server.
 > - **Level 2 — Claude (Desktop or Code):** the AI is the client and calls the
 >   tools for you from a normal chat. This is the real, day-to-day way to use it.
+> - **Level 3 — the bundled React app:** a FastAPI backend is the MCP client, and
+>   the browser talks to that backend over HTTP. Point-and-click charts and ML,
+>   plus a Claude-powered "ask anything" tab.
 >
 > Get comfortable in the Inspector first, then graduate to Claude.
 
@@ -98,12 +110,10 @@ Press **Ctrl+C** in the terminal to stop.
 | 1 | `list_datasets` | — | confirms `train.csv` is visible |
 | 2 | `profile_dataset` | `filename=train.csv` | shape, dtypes, sample rows |
 | 3 | `detect_missing_values` | `filename=train.csv` | Cabin 77%, Age 20% missing |
-| 4 | `value_counts` | `filename=train.csv`, `column=Survived` | class balance (62/38) |
-| 5 | `correlation_analysis` | `filename=train.csv` | strongest numeric relationships |
-| 6 | `plot_distribution` | `filename=train.csv`, `column=Age` | writes a PNG to `outputs/` |
-| 7 | `train_model` | `filename=train.csv`, `target=Survived` | ~0.82 accuracy + top features |
-| 8 | `list_models` | — | confirms the model was saved |
-| 9 | `predict` | `model=train_Survived_classification`, `records=[{"Pclass":1,"Sex":"female","Age":38,"Fare":71.3,"Embarked":"C"}]` | predicted `Survived` + confidence |
+| 4 | `plot_distribution` | `filename=train.csv`, `column=Age` | writes a PNG to `outputs/` |
+| 5 | `train_model` | `filename=train.csv`, `target=Survived` | ~0.82 accuracy + top features |
+| 6 | `list_models` | — | confirms the model was saved |
+| 7 | `predict` | `model=train_Survived_classification`, `records=[{"Pclass":1,"Sex":"female","Age":38,"Fare":71.3,"Embarked":"C"}]` | predicted `Survived` + confidence |
 
 > `train_model` actually fits a RandomForest — give it a few seconds.
 
@@ -123,9 +133,19 @@ Press **Ctrl+C** in the terminal to stop.
 Here Claude is the client: you chat normally and it decides which tools to call.
 
 ### Claude Code (CLI)
+On **bash / macOS / Linux**:
 ```bash
-claude mcp add kaggle-analyst -- uv --directory c:\dev\kaggle_mcp_project\kaggle_mcp run mcp_server.py
+claude mcp add kaggle-analyst -- uv --directory c:/dev/kaggle_mcp_project/kaggle_mcp run mcp_server.py
 ```
+
+On **Windows PowerShell**, use `add-json` instead. PowerShell mangles the `--`
+separator and eats the unquoted backslash path, which silently registers the
+server with an empty `args` list — it then fails to start:
+```powershell
+claude mcp add-json kaggle-analyst '{"command":"uv","args":["--directory","c:\\dev\\kaggle_mcp_project\\kaggle_mcp","run","mcp_server.py"]}'
+```
+Verify with `/mcp` in a Claude Code session, or `claude mcp get kaggle-analyst`
+— `args` must be non-empty.
 
 ### Claude Desktop
 Add this to your `claude_desktop_config.json`
@@ -146,6 +166,12 @@ Add this to your `claude_desktop_config.json`
 }
 ```
 
+Config file location on Windows depends on which build you installed:
+- **Microsoft Store build:** `%LOCALAPPDATA%\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude\claude_desktop_config.json`
+- **Standalone installer:** `%APPDATA%\Claude\claude_desktop_config.json`
+
+Settings → Developer → Edit Config opens the right one either way.
+
 ### Then just ask
 > "Profile train.csv, tell me which columns have missing data, then train a
 > model to predict Survived and report the most important features."
@@ -153,6 +179,91 @@ Add this to your `claude_desktop_config.json`
 Claude will call `profile_dataset` → `detect_missing_values` → `train_model`
 on its own and summarize the results — the same tools you clicked in the
 Inspector, now driven by the AI.
+
+## Level 3 — The React web app
+
+A browser **cannot speak MCP**: the transport is stdio, which needs a spawned
+child process and a pipe. So a FastAPI backend plays the role Claude Desktop
+plays — it launches `mcp_server.py` once, speaks real MCP over stdio, and exposes
+the results over HTTP:
+
+```
+React (browser) ──HTTP/SSE──▶ FastAPI ──MCP stdio──▶ mcp_server.py
+                                  └──────────────────▶ Claude API
+```
+
+**Run it:**
+```powershell
+.\run_web.ps1          # installs frontend deps on first run, starts both
+```
+Then open <http://localhost:5173>. Or start the halves yourself:
+```powershell
+uv run uvicorn backend.main:app --reload --port 8000   # terminal 1
+cd frontend; npm run dev                               # terminal 2
+```
+
+### The API key
+
+Only the **Ask Claude** and **Generate code** tabs need a Claude key. Datasets,
+charts, model training and prediction all work without one.
+
+Two ways to supply it — either works, and a shell variable **wins** over the file
+so an exported key is never silently shadowed by a stale `.env`:
+
+```powershell
+# 1. A .env file (gitignored). Put it in kaggle_mcp/ — the project root, NOT
+#    backend/, though backend/.env is also read as a fallback.
+cp .env.example .env      # then edit in your key
+
+# 2. Or an environment variable
+$env:ANTHROPIC_API_KEY = "sk-ant-..."                                            # this shell
+[Environment]::SetEnvironmentVariable("ANTHROPIC_API_KEY","sk-ant-...","User")   # persistent
+```
+
+The backend resolves `.env` against the project root rather than the current
+directory, so it loads no matter where you launch uvicorn from. Restart the
+backend after changing the key — it is read once when the client is built.
+
+Check what actually resolved without printing the secret:
+```powershell
+curl http://127.0.0.1:8000/api/health     # -> "claude_key_loaded": true
+```
+
+### What the tabs do
+| Tab | What it does | Path |
+|-----|--------------|------|
+| **Overview** | Row/column/gap tiles, missing-data chart, schema, sample rows | `profile_dataset`, `detect_missing_values` |
+| **Model** | Train a model, read its metrics and drivers, score a new record | `train_model`, `list_models`, `predict` |
+| **Ask Claude** | Free-text question → Claude picks tools, runs them, **charts every real result**, then writes the findings | any tool, chosen by the model |
+| **Generate code** | Python / SQL / ML script written against this dataset's real schema | Claude + `profile_dataset` |
+
+**Ask Claude is the main analysis surface.** Each tool call becomes its own card
+with the actual payload charted — shape tiles and a quantile line for
+`profile_dataset`, a ranked bar for `detect_missing_values`, the saved PNG
+rendered inline for `plot_distribution`, metric tiles plus feature importance for
+`train_model`. The written answer is rendered markdown (headings, tables, bold),
+so it reads as a report rather than raw text.
+
+Uploads land in `datasets/`, so a CSV you drop in the sidebar is immediately
+visible to Claude Desktop and the Inspector too — one dataset directory, three
+front doors.
+
+### Notes on the implementation
+- **Charts are data, not images.** The backend returns JSON and React renders it
+  with Recharts, so charts are hoverable and theme-aware. The existing
+  matplotlib `plot_distribution` tool still works for report-ready PNGs.
+- **Chart form is chosen by the data's job**, not by taste: magnitude → bar,
+  shape across an ordered scale → line, each in a single-hue sequential ramp.
+  (Part-to-whole is deliberately *not* a pie chart — pies misread at a glance,
+  so a stacked bar is the substitute if one is ever needed.) The palette was
+  checked with a colour-vision-deficiency validator, and every chart ships a
+  table view, so meaning never rides on colour alone.
+- **Two path guards.** The upload route rejects anything that is not a plain
+  `.csv` name, and `mcp_server.py` independently refuses paths outside
+  `datasets/`.
+- **The agent loop is the SDK's tool runner** with the MCP tools converted via
+  `anthropic.lib.tools.mcp`, so Claude calls the *same* tools the buttons call.
+  Progress streams to the browser as Server-Sent Events.
 
 ## Making predictions with a trained model
 

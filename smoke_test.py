@@ -12,13 +12,10 @@ print(s.profile_dataset("train.csv", sample_rows=2)[:600], "...")
 print("\n=== detect_missing_values ===")
 print(s.detect_missing_values("train.csv"))
 
-print("\n=== correlation_analysis (top) ===")
+print("\n=== profile_dataset: numeric summary ===")
 import json
-corr = json.loads(s.correlation_analysis("train.csv"))
-print(json.dumps(corr["top_correlations"][:5], indent=2))
-
-print("\n=== value_counts: Survived ===")
-print(s.value_counts("train.csv", "Survived"))
+prof = json.loads(s.profile_dataset("train.csv"))
+print(json.dumps(prof["numeric_summary"].get("Age", {}), indent=2))
 
 print("\n=== plot_distribution: Age ===")
 print(s.plot_distribution("train.csv", "Age"))

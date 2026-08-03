@@ -216,3 +216,32 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --------------------------------------------------------------------------- #
+# Node / frontend (frontend/ — React + Vite + TypeScript)
+#   `dist/`, `.env` and `*.log` are already covered by the Python rules above.
+# --------------------------------------------------------------------------- #
+node_modules/
+
+# Vite build output & dev cache
+frontend/dist/
+.vite/
+
+# TypeScript incremental build cache (created by `tsc -b`)
+*.tsbuildinfo
+
+# Package-manager debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-store/
+
+# Test / coverage output
+frontend/coverage/
+.eslintcache
+
+# Editor & OS cruft
+.DS_Store
+Thumbs.db

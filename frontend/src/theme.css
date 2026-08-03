@@ -1,0 +1,631 @@
+/* Palette roles. Light and dark are both *selected* -- the dark column is the
+   same hues re-stepped for the dark surface, not an automatic inversion.
+   Dark is declared under two scopes: the media query covers the OS setting, the
+   data-theme scope covers the in-app toggle, which must win both ways. */
+
+:root {
+  color-scheme: light;
+
+  --surface-1: #fcfcfb;
+  --page: #f9f9f7;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+  --grid: #e1e0d9;
+  --baseline: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.1);
+  --ghost: rgba(11, 11, 11, 0.04);
+
+  /* Categorical slots, fixed order, never cycled. */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+
+  /* Sequential: one hue, light -> dark. */
+  --seq-250: #86b6ef;
+  --seq-400: #3987e5;
+  --seq-450: #2a78d6;
+  --seq-550: #1c5cab;
+  --seq-650: #104281;
+
+  /* Diverging: two poles + a NEUTRAL GRAY midpoint (never a hue at zero). */
+  --div-pos: #2a78d6;
+  --div-neg: #e34948;
+  --div-mid: #f0efec;
+
+  --good: #0ca30c;
+  --good-text: #006300;
+  --warning: #fab219;
+  --serious: #ec835a;
+  --critical: #d03b3b;
+
+  --cell-ink-on-strong: #ffffff;
+  --radius: 10px;
+  --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+
+    --surface-1: #1a1a19;
+    --page: #0d0d0d;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+    --grid: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255, 255, 255, 0.1);
+    --ghost: rgba(255, 255, 255, 0.06);
+
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+
+    --seq-250: #184f95;
+    --seq-400: #256abf;
+    --seq-450: #2a78d6;
+    --seq-550: #3987e5;
+    --seq-650: #86b6ef;
+
+    --div-pos: #3987e5;
+    --div-neg: #e66767;
+    --div-mid: #383835;
+
+    --good: #0ca30c;
+    --good-text: #0ca30c;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --surface-1: #1a1a19;
+  --page: #0d0d0d;
+  --text-primary: #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted: #898781;
+  --grid: #2c2c2a;
+  --baseline: #383835;
+  --border: rgba(255, 255, 255, 0.1);
+  --ghost: rgba(255, 255, 255, 0.06);
+
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+
+  --seq-250: #184f95;
+  --seq-400: #256abf;
+  --seq-450: #2a78d6;
+  --seq-550: #3987e5;
+  --seq-650: #86b6ef;
+
+  --div-pos: #3987e5;
+  --div-neg: #e66767;
+  --div-mid: #383835;
+
+  --good: #0ca30c;
+  --good-text: #0ca30c;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  color: var(--text-primary);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 10px;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--series-1);
+  outline-offset: 1px;
+}
+
+/* ---------------------------------------------------------------- layout -- */
+.app {
+  display: grid;
+  grid-template-columns: 288px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.sidebar {
+  border-right: 1px solid var(--border);
+  background: var(--surface-1);
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.main {
+  padding: 22px 26px 60px;
+  min-width: 0;
+}
+
+.brand {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.brand small {
+  display: block;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+
+.grid {
+  display: grid;
+  gap: 14px;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Filters sit in ONE row above the charts, never beside them. */
+.filterbar {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field > label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+/* ------------------------------------------------------------- controls -- */
+.btn {
+  background: var(--series-1);
+  color: #fff;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-weight: 550;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn.ghost {
+  background: transparent;
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+.btn.ghost:hover:not(:disabled) {
+  background: var(--ghost);
+}
+
+.tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+  overflow-x: auto;
+}
+
+.tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 9px 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.tab[aria-selected="true"] {
+  color: var(--text-primary);
+  border-bottom-color: var(--series-1);
+  font-weight: 600;
+}
+
+.datasets {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dataset {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 8px 10px;
+  text-align: left;
+  color: var(--text-secondary);
+  width: 100%;
+}
+
+.dataset:hover {
+  background: var(--ghost);
+}
+
+.dataset[aria-current="true"] {
+  background: var(--ghost);
+  border-color: var(--border);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.dataset span:last-child {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.drop {
+  border: 1px dashed var(--baseline);
+  border-radius: var(--radius);
+  padding: 14px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.drop.over {
+  border-color: var(--series-1);
+  background: var(--ghost);
+}
+
+/* ------------------------------------------------------------ stat tiles -- */
+/* A single current value is a stat tile, not a one-bar bar chart. */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.tile {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 13px 15px;
+}
+
+.tile .label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.tile .value {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-top: 2px;
+}
+
+.tile .sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.hero {
+  font-size: 48px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+/* ------------------------------------------------------------- headings -- */
+.h {
+  font-size: 14px;
+  font-weight: 650;
+  margin: 0 0 2px;
+}
+
+.sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0 0 12px;
+}
+
+/* --------------------------------------------------------------- tables -- */
+/* Every chart ships a table view: identity is never color-alone. */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--grid);
+}
+
+th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+td.num,
+th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.scroll {
+  max-height: 340px;
+  overflow: auto;
+}
+
+details.tableview > summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 6px 0;
+}
+
+/* ------------------------------------------------------------- tooltips -- */
+.tip {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  font-size: 12px;
+}
+
+.tip .k {
+  color: var(--text-secondary);
+}
+
+.tip .v {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* -------------------------------------------------------------- heatmap -- */
+.heatmap {
+  display: grid;
+  gap: 2px; /* 2px surface gap between adjacent fills */
+  overflow: auto;
+}
+
+.hcell {
+  min-width: 46px;
+  height: 34px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  cursor: default;
+}
+
+.hlabel {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  padding-right: 6px;
+  justify-content: flex-end;
+}
+
+.hlabel.top {
+  justify-content: center;
+  padding: 0 2px 4px;
+  writing-mode: vertical-rl;
+  height: 92px;
+}
+
+.legend-scale {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 12px;
+}
+
+.legend-scale .swatches {
+  display: flex;
+  gap: 2px;
+}
+
+.legend-scale .sw {
+  width: 22px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+/* ---------------------------------------------------------------- misc -- */
+.msg {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.msg.err {
+  border-color: var(--critical);
+  color: var(--critical);
+}
+
+.msg.ok {
+  border-color: var(--good);
+  color: var(--good-text);
+}
+
+pre.code {
+  background: var(--page);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  overflow: auto;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  max-height: 520px;
+  margin: 0;
+}
+
+.toollog {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.toollog .name {
+  color: var(--series-1);
+  font-weight: 600;
+}
+
+/* Rendered markdown from the analyst. */
+.md {
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.md > p {
+  margin: 0 0 10px;
+}
+
+.md > p:last-child {
+  margin-bottom: 0;
+}
+
+.md .mdh {
+  font-size: 14px;
+  font-weight: 650;
+  margin: 18px 0 6px;
+  letter-spacing: -0.01em;
+}
+
+.md .mdh:first-child {
+  margin-top: 0;
+}
+
+.md .mdh.sm {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.md ul,
+.md ol {
+  margin: 0 0 10px;
+  padding-left: 22px;
+}
+
+.md li {
+  margin-bottom: 3px;
+}
+
+.md li::marker {
+  color: var(--text-muted);
+}
+
+.md table {
+  margin-bottom: 10px;
+}
+
+.md .scroll {
+  max-height: none;
+}
+
+.icode {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  background: var(--ghost);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.spin {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--baseline);
+  border-top-color: var(--series-1);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation-duration: 2.4s;
+  }
+}
+
+@media (max-width: 860px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+}

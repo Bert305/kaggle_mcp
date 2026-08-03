@@ -19,8 +19,6 @@ Tools (model-invoked actions):
   * list_datasets            — list CSV files available under datasets/
   * profile_dataset          — shape, dtypes, summary stats, sample rows
   * detect_missing_values    — per-column missing counts & percentages
-  * correlation_analysis     — correlation matrix of numeric columns
-  * value_counts             — distribution of a categorical column
   * plot_distribution        — save a histogram/bar chart PNG to outputs/
   * train_model              — train a sklearn classifier/regressor & save it
   * list_models              — list saved models (target column & task type)
@@ -201,70 +199,6 @@ def detect_missing_values(filename: str) -> str:
     if not report:
         return f"No missing values found in {filename} ({total} rows)."
     return _json({"filename": filename, "n_rows": total, "missing": report})
-
-
-@mcp.tool()
-def correlation_analysis(
-    filename: str,
-    method: Literal["pearson", "spearman", "kendall"] = "pearson",
-    top_n: int = 10,
-) -> str:
-    """Compute the correlation matrix of numeric columns and surface the
-    strongest pairwise correlations.
-
-    Args:
-        filename: CSV file inside datasets/.
-        method: Correlation method.
-        top_n: Number of strongest (by absolute value) pairs to list.
-    """
-    df = _load_df(filename)
-    numeric = df.select_dtypes(include="number")
-    if numeric.shape[1] < 2:
-        return "Need at least two numeric columns for correlation analysis."
-    corr = numeric.corr(method=method)
-
-    # Extract unique upper-triangle pairs, ranked by |correlation|.
-    pairs = []
-    cols = corr.columns.tolist()
-    for i in range(len(cols)):
-        for j in range(i + 1, len(cols)):
-            value = corr.iloc[i, j]
-            if pd.notna(value):
-                pairs.append(
-                    {"pair": [cols[i], cols[j]], "corr": round(float(value), 4)}
-                )
-    pairs.sort(key=lambda p: abs(p["corr"]), reverse=True)
-
-    return _json(
-        {
-            "filename": filename,
-            "method": method,
-            "matrix": json.loads(corr.round(4).to_json()),
-            "top_correlations": pairs[:top_n],
-        }
-    )
-
-
-@mcp.tool()
-def value_counts(filename: str, column: str, top_n: int = 20) -> str:
-    """Show the value distribution of a single column (great for categoricals
-    and the target variable)."""
-    df = _load_df(filename)
-    if column not in df.columns:
-        raise ValueError(
-            f"Column {column!r} not found. Columns: {', '.join(df.columns)}"
-        )
-    counts = df[column].value_counts(dropna=False).head(top_n)
-    total = len(df)
-    dist = [
-        {
-            "value": ("<NA>" if pd.isna(idx) else idx),
-            "count": int(n),
-            "pct": round(int(n) / total * 100, 2),
-        }
-        for idx, n in counts.items()
-    ]
-    return _json({"filename": filename, "column": column, "distribution": dist})
 
 
 @mcp.tool()
@@ -659,14 +593,12 @@ def eda_walkthrough(filename: str = "train.csv") -> str:
         f"You are a senior data analyst. Perform a thorough exploratory data "
         f"analysis of the dataset '{filename}'.\n\n"
         "Work through these steps, using the available MCP tools:\n"
-        "1. Call `profile_dataset` to understand shape, dtypes, and ranges.\n"
+        "1. Call `profile_dataset` to understand shape, dtypes, and ranges. Read "
+        "the `numeric_summary` quartiles to judge skew and spread, and "
+        "`n_unique` to tell identifiers from real categories.\n"
         "2. Call `detect_missing_values` and recommend an imputation strategy "
         "for each affected column.\n"
-        "3. Call `correlation_analysis` and interpret the strongest "
-        "relationships.\n"
-        "4. For key categorical columns, call `value_counts` to inspect class "
-        "balance.\n"
-        "5. Suggest `plot_distribution` calls for the most interesting columns.\n\n"
+        "3. Suggest `plot_distribution` calls for the most interesting columns.\n\n"
         "Finish with a concise bulleted summary of data-quality issues and "
         "three concrete hypotheses worth modelling."
     )
@@ -684,11 +616,10 @@ def insight_report(filename: str = "train.csv") -> str:
         "columns, dtypes, and value ranges.\n"
         "2. Use `detect_missing_values` to spot data-quality issues that could "
         "skew conclusions.\n"
-        "3. Use `correlation_analysis` to find the strongest numeric "
-        "relationships, then form hypotheses about WHY they hold.\n"
-        "4. Use `value_counts` on categorical columns to find imbalances, "
-        "dominant categories, or surprising distributions.\n"
-        "5. For every insight worth showing, call `plot_distribution` to save a "
+        "3. Mine the `numeric_summary` from `profile_dataset`: compare mean "
+        "against median to detect skew, and std against mean to find the most "
+        "volatile columns. Form hypotheses about WHY those patterns hold.\n"
+        "4. For every insight worth showing, call `plot_distribution` to save a "
         "chart to outputs/ and reference the saved PNG path in your write-up. "
         "Prioritize the columns that best illustrate each finding.\n\n"
         "Then write a findings report:\n"
@@ -708,8 +639,8 @@ def ml_pipeline(filename: str = "train.csv", target: str = "Survived") -> str:
         f"Build a baseline predictive model for the column '{target}' in "
         f"'{filename}'.\n\n"
         "Follow this workflow:\n"
-        f"1. Profile the data and check the class balance of '{target}' with "
-        "`value_counts`.\n"
+        f"1. Profile the data with `profile_dataset` and judge whether '{target}' "
+        "is a classification or regression target from its dtype and `n_unique`.\n"
         "2. Identify leakage-prone or ID-like columns to exclude from features.\n"
         f"3. Call `train_model` with target='{target}', letting preprocessing "
         "handle missing values and categoricals.\n"
