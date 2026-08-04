@@ -237,12 +237,37 @@ curl http://127.0.0.1:8000/api/health     # -> "claude_key_loaded": true
 | **Ask Claude** | Free-text question → Claude picks tools, runs them, **charts every real result**, then writes the findings | any tool, chosen by the model |
 | **Generate code** | Python / SQL / ML script written against this dataset's real schema | Claude + `profile_dataset` |
 
-**Ask Claude is the main analysis surface.** Each tool call becomes its own card
-with the actual payload charted — shape tiles and a quantile line for
-`profile_dataset`, a ranked bar for `detect_missing_values`, the saved PNG
-rendered inline for `plot_distribution`, metric tiles plus feature importance for
-`train_model`. The written answer is rendered markdown (headings, tables, bold),
-so it reads as a report rather than raw text.
+**Ask Claude is the main analysis surface**, and it visualises in two ways.
+
+*Tool cards* — each call becomes its own card with the real payload charted:
+shape tiles and a quantile line for `profile_dataset`, a ranked bar for
+`detect_missing_values`, the saved PNG inline for `plot_distribution`, metric
+tiles plus feature importance for `train_model`.
+
+*Charts Claude draws itself* — it can place a chart anywhere in its write-up by
+emitting a fenced ` ```chart ` block, which renders in place, beside the claim it
+supports:
+
+````
+```chart
+{"chart":"pie","title":"Survival by class","insight":"3rd class carried the losses.",
+ "series":[{"name":"passengers","points":[{"x":"1st","y":216},{"x":"3rd","y":491}]}]}
+```
+````
+
+| `chart` | For |
+|---|---|
+| `bar` / `column` | magnitude across named categories |
+| `line` / `area` | change across an ordered scale |
+| `pie` / `donut` | parts of one whole (capped at 6 slices, tail folded into "Other") |
+| `scatter` | relationship between two numeric measures |
+| `stat` | two to four headline numbers |
+
+Specs are parsed defensively — a malformed one degrades to a code block rather
+than breaking the answer — and the model is instructed never to plot a number it
+did not get from a tool. The prose itself is rendered markdown (headings,
+tables, bold, inline code) by a small dependency-free renderer that builds React
+elements, so model output can never inject markup.
 
 Uploads land in `datasets/`, so a CSV you drop in the sidebar is immediately
 visible to Claude Desktop and the Inspector too — one dataset directory, three

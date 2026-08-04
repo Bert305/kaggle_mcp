@@ -8,6 +8,8 @@
 
 import type { ReactNode } from "react";
 
+import { SpecChart, parseSpec } from "./SpecChart";
+
 /** Bold and inline code inside a line of text. */
 function inline(text: string, key: string): ReactNode[] {
   const out: ReactNode[] = [];
@@ -80,6 +82,37 @@ export function Markdown({ text }: { text: string }) {
     // Blank line ends the current block.
     if (trimmed === "") {
       flushAll();
+      continue;
+    }
+
+    // Fenced block. A ```chart fence becomes a real chart placed exactly where
+    // the analyst put it; anything else renders as code. A spec that fails to
+    // parse degrades to the raw block rather than disappearing.
+    const fence = /^```([A-Za-z0-9_-]*)\s*$/.exec(trimmed);
+    if (fence) {
+      flushAll();
+      const lang = fence[1].toLowerCase();
+      const buf: string[] = [];
+      i += 1;
+      while (i < lines.length && !/^```\s*$/.test(lines[i].trim())) {
+        buf.push(lines[i]);
+        i += 1;
+      }
+      const body = buf.join("\n");
+      const key = `f${blocks.length}`;
+
+      if (lang === "chart") {
+        const spec = parseSpec(body);
+        if (spec) {
+          blocks.push(<SpecChart key={key} spec={spec} />);
+          continue;
+        }
+      }
+      blocks.push(
+        <pre className="code" key={key}>
+          {body}
+        </pre>,
+      );
       continue;
     }
 
