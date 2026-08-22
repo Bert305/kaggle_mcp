@@ -47,6 +47,7 @@ kaggle_mcp/
 ├── frontend/            # React + Vite + Recharts UI
 │   └── src/
 │       ├── charts.tsx   #   chart forms (sequential bars, diverging heatmap)
+│       ├── exporting.ts #   CSV / JPEG / clipboard export
 │       ├── api.ts       #   typed client, incl. SSE reader
 │       └── panels/      #   Overview · Explore · Model · Ask · Generate code
 ├── datasets/            # CSVs — the web app uploads here; every tool reads here
@@ -88,7 +89,7 @@ each tool by hand.
   command). It is declared in `pyproject.toml`, so `uv sync` installs it.
 - [Node.js](https://nodejs.org) — the Inspector UI is a Node app launched via `npx`.
 
-**Launch it:**
+**Tool Inspection to verify the tools are connected and work:**
 ```bash
 uv run mcp dev mcp_server.py
 ```
@@ -262,6 +263,31 @@ supports:
 | `pie` / `donut` | parts of one whole (capped at 6 slices, tail folded into "Other") |
 | `scatter` | relationship between two numeric measures |
 | `stat` | two to four headline numbers |
+
+### Taking the analysis out of the app
+
+Nothing is trapped in the browser. Every result carries its own export control,
+and the Ask tab has a bar that takes the whole session at once.
+
+| Control | Where | What you get |
+|---|---|---|
+| **CSV** / **Copy** | under any *View as table* | that one table as a `.csv`, or as a markdown table on the clipboard |
+| **JPEG** / **Copy** | above any chart | that chart as a titled `.jpg`, or as an image on the clipboard |
+| **Data (CSV)** | Ask tab, above the results | *every* table in the session in one `.csv`, each under a `# section` line |
+| **Charts (JPEG)** | Ask tab | every chart in the session, one `.jpg` each |
+| **Copy all** | Ask tab | question + tool results + findings as one markdown document |
+
+The CSVs open cleanly in Excel: they carry a UTF-8 BOM, and a cell starting `=`
+or `@` is prefixed so a spreadsheet can never execute exported text (a plain
+negative number is left alone).
+
+Two details make the image export work. Chart colours are CSS custom properties
+(`fill="var(--seq-450)"`), and a serialized SVG renders in an isolated document
+where those variables do not exist — so every paint property is resolved onto a
+detached clone before rasterizing, or the chart would come out black. And
+Recharts draws the legend as HTML *outside* the SVG, so it is read back out of
+the DOM and redrawn onto the canvas under the chart. See
+`frontend/src/exporting.ts`.
 
 Specs are parsed defensively — a malformed one degrades to a code block rather
 than breaking the answer — and the model is instructed never to plot a number it

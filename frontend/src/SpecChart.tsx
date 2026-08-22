@@ -31,7 +31,7 @@ import {
   ZAxis,
 } from "recharts";
 
-import { ChartTip, TableView, Tile, axisStyle } from "./ui";
+import { ChartTip, Figure, TableView, Tile, axisStyle } from "./ui";
 
 const GRID = "var(--grid)";
 const BASELINE = "var(--baseline)";
@@ -126,9 +126,12 @@ function toRows(series: Series[]): Record<string, string | number>[] {
 
 function Frame({
   spec,
+  chart = true,
   children,
 }: {
   spec: ChartSpec;
+  /** Stat tiles are markup, not an SVG -- there is nothing to rasterize. */
+  chart?: boolean;
   children: React.ReactNode;
 }) {
   const multi = spec.series.length > 1;
@@ -140,12 +143,20 @@ function Frame({
     ...(multi ? spec.series.map((s) => String(r[s.name] ?? "—")) : [String(r[spec.series[0].name] ?? "—")]),
   ]);
 
+  const name = spec.title ?? `${spec.chart}-chart`;
+
   return (
     <figure className="specchart">
       {spec.title ? <h4 className="h">{spec.title}</h4> : null}
       {spec.insight ? <p className="sub">{spec.insight}</p> : null}
-      {children}
-      <TableView headers={headers} rows={rows} />
+      {chart ? (
+        <Figure name={name} title={spec.title} subtitle={spec.insight}>
+          {children}
+        </Figure>
+      ) : (
+        children
+      )}
+      <TableView name={name} headers={headers} rows={rows} />
     </figure>
   );
 }
@@ -160,7 +171,7 @@ export function SpecChart({ spec }: { spec: ChartSpec }) {
   // --- Stat tiles: a handful of headline numbers is not a chart. ----------
   if (chart === "stat" || chart === "tiles" || chart === "kpi") {
     return (
-      <Frame spec={spec}>
+      <Frame spec={spec} chart={false}>
         <div className="kpis">
           {series[0].points.map((p) => (
             <Tile

@@ -266,6 +266,65 @@ button:focus-visible {
   background: var(--ghost);
 }
 
+/* Export controls. Recessive but always visible -- hover-only affordances are
+   invisible to touch and to anyone scanning for a way out of the app. */
+.btn.mini {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 550;
+  letter-spacing: 0.02em;
+}
+
+.btn.mini:hover:not(:disabled) {
+  background: var(--ghost);
+  color: var(--text-primary);
+}
+
+.fx {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+}
+
+.fxnote {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.figure {
+  margin: 0;
+}
+
+/* Sits above the results it exports, so it reads as "all of this, out". */
+.exportbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+}
+
+.exportbar > .label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-right: 2px;
+}
+
+.exportbar .fxnote {
+  margin-left: auto;
+}
+
 .tabs {
   display: flex;
   gap: 2px;

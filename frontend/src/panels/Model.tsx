@@ -175,8 +175,11 @@ export function Model({ filename }: { filename: string }) {
               }))}
               nameKey="feature"
               valueKey="importance"
+              title={`What drives ${result.target}`}
+              exportName={`feature-importance-${result.target}`}
             />
             <TableView
+              name={`feature-importance-${result.target}`}
               headers={["Feature", "Importance"]}
               rows={result.top_features.map((f) => [
                 f.feature,

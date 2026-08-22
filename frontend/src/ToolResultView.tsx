@@ -8,7 +8,7 @@
 import type { ReactNode } from "react";
 
 import { MagnitudeBarH, QuantileLine } from "./charts";
-import { Msg, TableView, Tile } from "./ui";
+import { Figure, Msg, TableView, Tile } from "./ui";
 
 type Obj = Record<string, unknown>;
 
@@ -39,7 +39,7 @@ function PlotView({ data }: { data: unknown }) {
   if (!match) return <Message data={data} />;
   const file = match[1];
   return (
-    <figure style={{ margin: 0 }}>
+    <Figure name={file.replace(/\.png$/i, "")} title={file} subtitle="plot_distribution">
       <img
         src={`/api/outputs/${encodeURIComponent(file)}`}
         alt={`Distribution plot: ${file}`}
@@ -54,7 +54,7 @@ function PlotView({ data }: { data: unknown }) {
       <figcaption className="sub" style={{ marginTop: 6, marginBottom: 0 }}>
         {file} — saved to outputs/
       </figcaption>
-    </figure>
+    </Figure>
   );
 }
 
@@ -76,8 +76,11 @@ function Missing({ data }: { data: unknown }) {
         valueKey="percent"
         unit="% of rows"
         maxDomain={100}
+        title="Missing data by column"
+        exportName="missing-by-column"
       />
       <TableView
+        name="missing-by-column"
         headers={["Column", "Missing", "% of rows"]}
         rows={bars.map((b) => [b.column, b.count, b.percent.toFixed(2)])}
       />
@@ -127,11 +130,17 @@ function ProfileView({ data }: { data: unknown }) {
         <>
           <h3 className="h">Shape of {firstNumeric}</h3>
           <p className="sub">Five-number summary of the first numeric column.</p>
-          <QuantileLine data={quantiles} height={220} />
+          <QuantileLine
+            data={quantiles}
+            height={220}
+            title={`Shape of ${firstNumeric}`}
+            exportName={`shape-${firstNumeric}`}
+          />
         </>
       ) : null}
       <TableView
         summary="View schema as table"
+        name="schema"
         headers={["Column", "Dtype", "Missing"]}
         rows={cols.map((c) => [c.name, c.dtype, c.missing])}
       />
@@ -183,8 +192,11 @@ function TrainView({ data }: { data: unknown }) {
             nameKey="feature"
             valueKey="importance"
             labelWidth={150}
+            title="What drives the prediction"
+            exportName={`feature-importance-${str(data.target) ?? "target"}`}
           />
           <TableView
+            name={`feature-importance-${str(data.target) ?? "target"}`}
             headers={["Feature", "Importance"]}
             rows={feats.map((f) => [f.feature, f.importance.toFixed(4)])}
           />
@@ -224,6 +236,7 @@ function PredictView({ data }: { data: unknown }) {
       </p>
       <TableView
         summary={`View ${preds.length} predictions`}
+        name={`predictions-${target}`}
         headers={keys}
         rows={preds.map((p) => keys.map((k) => String(p[k])))}
       />
@@ -239,6 +252,7 @@ function ListView({ data, kind }: { data: unknown; kind: "datasets" | "models" }
     return (
       <TableView
         summary={`${items.length} datasets`}
+        name="datasets"
         headers={["File", "Columns", "KB"]}
         rows={items.map((d) => [
           str(d.filename) ?? "?",
@@ -251,6 +265,7 @@ function ListView({ data, kind }: { data: unknown; kind: "datasets" | "models" }
   return (
     <TableView
       summary={`${items.length} saved models`}
+      name="saved-models"
       headers={["Model", "Target", "Task"]}
       rows={items.map((m) => [
         str(m.model) ?? "?",

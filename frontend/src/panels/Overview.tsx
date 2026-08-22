@@ -85,8 +85,11 @@ export function Overview({ filename }: { filename: string }) {
               valueKey="percent"
               unit="% of rows"
               maxDomain={100}
+              title={`Missing data by column — ${filename}`}
+              exportName={`missing-${filename.replace(/\.csv$/i, "")}`}
             />
             <TableView
+              name={`missing-${filename.replace(/\.csv$/i, "")}`}
               headers={["Column", "Missing", "% of rows"]}
               rows={missingRows.map((r) => [
                 r.column,
