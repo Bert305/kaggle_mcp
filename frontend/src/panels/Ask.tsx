@@ -18,6 +18,23 @@ import { Markdown } from "../Markdown";
 import { ToolResultView, canVisualize } from "../ToolResultView";
 import { Card, Msg, Spinner } from "../ui";
 
+/** What one question actually produces — stated up front, because it is not
+ *  obvious from a text box that this returns a full report and not a sentence. */
+const CAPABILITIES = [
+  {
+    title: "Data analysis",
+    body: "Profiles, missing-data audits, distributions and trained models — run against the real file, not a summary of it.",
+  },
+  {
+    title: "Visualizations",
+    body: "Every tool result is charted as it returns, and Claude places its own charts inline next to the claim each one supports.",
+  },
+  {
+    title: "Insight report",
+    body: "A written answer with the numbers, the caveats and a next step — exportable as CSV, JPEG or markdown.",
+  },
+];
+
 const SUGGESTIONS = [
   "What are the most interesting non-obvious insights in this dataset?",
   "Which columns have data-quality problems, and how should I handle each?",
@@ -186,8 +203,17 @@ export function Ask({ filename }: { filename: string }) {
     <div className="grid">
       <Card
         title="Ask about this dataset"
-        hint={`Claude answers by calling the same MCP tools this app uses, against ${filename}. Each tool's real output is charted below as it runs.`}
+        hint={`One question in, a full report out: data analysis, visualizations and written insights for ${filename}. Every number comes from a real tool call against the file — nothing is estimated.`}
       >
+        <div className="caps">
+          {CAPABILITIES.map((c) => (
+            <div className="cap" key={c.title}>
+              <b>{c.title}</b>
+              <span>{c.body}</span>
+            </div>
+          ))}
+        </div>
+
         <textarea
           rows={3}
           value={question}

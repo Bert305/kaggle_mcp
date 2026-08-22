@@ -266,6 +266,37 @@ button:focus-visible {
   background: var(--ghost);
 }
 
+/* What one question returns. A text box gives no hint that the answer is a
+   report rather than a sentence, so the three capabilities are stated up front. */
+.caps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+  margin: 4px 0 14px;
+}
+
+.cap {
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--series-1);
+  border-radius: 8px;
+  padding: 9px 12px;
+  background: var(--ghost);
+}
+
+.cap b {
+  display: block;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin-bottom: 2px;
+}
+
+.cap span {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
 /* Export controls. Recessive but always visible -- hover-only affordances are
    invisible to touch and to anyone scanning for a way out of the app. */
 .btn.mini {
