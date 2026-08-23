@@ -129,7 +129,7 @@ export default function App() {
             void upload(e.dataTransfer.files);
           }}
         >
-          Drop a CSV here, or{" "}
+          Drop a CSV here {" "}
           <button
             className="btn ghost"
             style={{ padding: "3px 9px", fontSize: 12 }}
