@@ -9,13 +9,13 @@ const MODES: { id: Lang; label: string; hint: string; placeholder: string }[] = 
   {
     id: "python",
     label: "Python analysis",
-    hint: "A pandas script for the analysis you describe, written against this dataset's real columns.",
-    placeholder: "e.g. survival rate by class and sex, with a saved bar chart",
+    hint: "A pandas script written against this dataset's real columns: an EDA pass, your analysis, and charts saved as PNGs under outputs/.",
+    placeholder: "e.g. survival rate by class and sex",
   },
   {
     id: "sql",
     label: "SQL query",
-    hint: "A DuckDB query that reads the CSV directly — runnable with no database to set up.",
+    hint: "Plain ANSI SQL against a table named after this dataset — paste it into Databricks, Supabase or SQL Workbench.",
     placeholder: "e.g. average fare per class for passengers under 30",
   },
   {
@@ -110,7 +110,7 @@ export function Code({ filename }: { filename: string }) {
             </button>
             <span className="sub" style={{ margin: 0 }}>
               {lang === "sql"
-                ? "Run with: duckdb -c \"<query>\" from the kaggle_mcp/ directory"
+                ? `Assumes a table named ${filename.replace(/\.csv$/i, "")} in your warehouse`
                 : "Save under kaggle_mcp/ and run: uv run python <file>.py"}
             </span>
           </div>

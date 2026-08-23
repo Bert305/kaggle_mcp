@@ -9,6 +9,7 @@ the user's CSV rather than a guess.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Any, AsyncIterator
 
 from anthropic import AsyncAnthropic
@@ -116,6 +117,37 @@ You generate runnable analysis code for a specific CSV dataset. You are given \
 the dataset's real schema. Use only the columns that exist, spelled exactly as \
 given. Prefer clear, idiomatic code over clever code. No placeholder TODOs and \
 no invented column names.
+"""
+
+# Chart rules for generated matplotlib. The hexes are a validated categorical
+# order (adjacent-pair CVD separation holds for all eight; only the first three
+# hold when every pair is compared at once, hence the scatter cap).
+VIZ_GUIDE = """\
+Charts -- two to four, each earning its place:
+  * Pick the form by the job the data has to do: `barh` to compare magnitude \
+across named categories (horizontal when the labels are long, `bar` when they \
+are short), `line` for change across an ordered scale, `hist` for one \
+distribution, `boxplot` for a distribution compared across groups, `scatter` \
+for the relationship between two numeric measures, a heatmap for a correlation \
+matrix. A single headline number is a `print`, not a chart.
+  * Never a dual y-axis. Two measures on different scales -> two charts, or \
+index both to a common base.
+  * Color: assign these hexes in this order, one per entity, never cycled --
+    #2a78d6, #eb6834, #1baf7a, #eda100, #e87ba4, #008300, #4a3aa7, #e34948.
+    Scatter and other forms where every pair sits side by side stop at the \
+first three; past that, fold the tail into "Other" or facet into subplots. A \
+single-series chart uses #2a78d6 alone. Continuous magnitude is one hue \
+light->dark (`cmap="Blues"`), never a rainbow map; signed data diverges \
+(`cmap="coolwarm"`, `vmin=-vmax` so 0 lands on the neutral midpoint).
+  * Style each axes: `figsize=(8, 5)`, left-aligned title in #0b0b0b, tick and \
+axis-label text in #52514e, `ax.set_axisbelow(True)` with a gridline in \
+#e1e0d9 on the value axis only, top/right spines hidden and the remaining \
+baseline in #c3c2b7. Label axes with their units. Legend only for 2+ series; \
+direct-label instead when few enough marks. Never a value label on every point.
+  * Headless: `import matplotlib; matplotlib.use("Agg")` before pyplot, \
+`os.makedirs("outputs", exist_ok=True)`, then \
+`fig.savefig(f"outputs/{name}.png", dpi=150, bbox_inches="tight")` and \
+`plt.close(fig)` per figure. Never `plt.show()`.\
 """
 
 
@@ -277,16 +309,32 @@ class ClaudeAnalyst:
         """Generate a Python script or SQL query for this dataset."""
         if language == "python":
             target = (
-                "Write a single self-contained Python script using pandas "
-                "(and scikit-learn/matplotlib only if the goal needs them). "
-                f"Load the data with pd.read_csv('datasets/{filename}'). "
-                "Print findings to stdout; save any plot to outputs/."
+                "Write a single self-contained Python script using pandas and "
+                "matplotlib (scikit-learn only if the goal needs it). Load the "
+                f"data with pd.read_csv('datasets/{filename}').\n\n"
+                "Structure it in three parts:\n"
+                "  1. EDA -- shape, dtypes, missing-value counts per column, "
+                "describe() on the numerics, value counts for the categoricals "
+                "that matter, and the correlations between the numerics "
+                "relevant to the goal.\n"
+                "  2. The specific analysis the goal asks for.\n"
+                "  3. The charts below.\n\n"
+                "Print every finding to stdout under short labelled headings "
+                "so the run reads as a report, and save each chart as its own "
+                "PNG under outputs/ with a descriptive filename.\n\n"
+                f"{VIZ_GUIDE}"
             )
         elif language == "sql":
+            table = Path(filename).stem
             target = (
-                "Write a SQL query in DuckDB dialect that reads the CSV "
-                f"directly: FROM read_csv_auto('datasets/{filename}'). "
-                "Use a CTE if it aids readability. Return a single query."
+                "Write a plain, portable ANSI SQL query against a table named "
+                f"`{table}`. Reference that table name directly -- no file "
+                "paths, and no read_csv_auto() or other file-reading "
+                "functions. It must run as-is on Databricks, Postgres "
+                "(Supabase) and SQL Workbench, so stick to standard SQL: "
+                "CTEs, joins, aggregates and window functions are fine, but "
+                "avoid engine-specific functions, casts and syntax. Return a "
+                "single query."
             )
         elif language == "ml":
             target = (

@@ -236,7 +236,7 @@ curl http://127.0.0.1:8000/api/health     # -> "claude_key_loaded": true
 | **Overview** | Row/column/gap tiles, missing-data chart, schema, sample rows | `profile_dataset`, `detect_missing_values` |
 | **Model** | Train a model, read its metrics and drivers, score a new record | `train_model`, `list_models`, `predict` |
 | **Ask Claude** | Free-text question → Claude picks tools, runs them, **charts every real result**, then writes the findings | any tool, chosen by the model |
-| **Generate code** | Python / SQL / ML script written against this dataset's real schema | Claude + `profile_dataset` |
+| **Generate code** | Written against this dataset's real schema: a pandas script (EDA + analysis + charts saved to `outputs/`), a portable ANSI SQL query against a table named after the CSV, or an end-to-end scikit-learn script | Claude + `profile_dataset` |
 
 **Ask Claude is the main analysis surface**, and it visualises in two ways.
 
